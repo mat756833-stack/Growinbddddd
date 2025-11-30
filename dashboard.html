@@ -111,6 +111,7 @@
 /* small withdraw instruction box */
 .withdraw-instruction { background:#fbfdff;border:1px solid #e6f0ff;padding:10px;border-radius:8px;margin-top:8px;color:#0b2540; }
 
+  
 /* Injected: Mobile hamburger/menu fixes */
 .hamburger {
   z-index: 1301;
@@ -295,8 +296,10 @@
       </table>
     </div>
 
+    
   </div>
 </section>
+
 
       <!-- WITHDRAWAL SECTION -->
 <!-- WITHDRAWAL SECTION -->
@@ -425,8 +428,8 @@ WITHDRAW JS - paste into your main script (end of file) */
   const depositTbody = document.querySelector('#deposit-table tbody');
 
   // common data
-  const pending = null || [];
-  const recent = null || [];
+  const pending = JSON.parse(localStorage.getItem('pendingDeposits')) || [];
+  const recent = JSON.parse(localStorage.getItem('recentActivity')) || [];
 
   // fill history view (older behavior)
   if(historyTbody){
@@ -480,6 +483,9 @@ WITHDRAW JS - paste into your main script (end of file) */
   // update dashboard recent list as before
   if(typeof updateDashboardUI === 'function') updateDashboardUI();
 }
+
+
+
 
   function renderWithdrawTable(){
     withdrawTableTbody.innerHTML = '';
@@ -730,7 +736,7 @@ WITHDRAW JS - paste into your main script (end of file) */
   const withdrawRequests = window._withdrawRequests;
 
   function renderWithdrawTable(){
-const list = null || [];
+const list = JSON.parse(localStorage.getItem('pendingWithdraws')) || [];
     const tbody = document.querySelector('#withdraw-table tbody');
     if(!tbody) return;
     tbody.innerHTML = '';
@@ -793,7 +799,63 @@ const list = null || [];
   window.showView = showView;
 
 })(); // end wrapper
+// --- Render investment plans with custom rates and durations ---
+(function renderPlansSafe(){
+  function render() {
+    const allPlansEl = document.getElementById('all-plans');
+    if(!allPlansEl) {
+      console.warn('all-plans element not found');
+      return;
+    }
 
+    // Updated plan configurations
+    const plans = [
+      { amount: 1000,  rate: 0.07, duration: 30 },
+      { amount: 2000,  rate: 0.07, duration: 30 },
+      { amount: 5000,  rate: 0.06, duration: 35 },
+      { amount: 10000, rate: 0.06, duration: 35 },
+      { amount: 20000, rate: 0.05, duration: 40 },
+      { amount: 50000, rate: 0.045, duration: 45 },
+      { amount: 100000, rate: 0.045, duration: 45 },
+      { amount: 250000, rate: 0.04, duration: 60 }
+    ];
+
+    allPlansEl.innerHTML = '';
+
+    plans.forEach(p => {
+      const perDay = Math.round(p.amount * p.rate);
+      const total = perDay * p.duration;
+      const div = document.createElement('div');
+      div.className = 'plan-box';
+      div.innerHTML = `
+        <h4>Investment Plan</h4>
+        <div class="plan-amount">৳${p.amount.toLocaleString('en-US')}</div>
+        <div class="plan-rate">Daily Income: ৳${perDay.toLocaleString('en-US')}</div>
+        <div>Rate: ${(p.rate*100).toFixed(1)}% per day</div>
+        <div>Duration: ${p.duration} days</div>
+        <div style="margin-top:8px">Total Return: <strong>৳${total.toLocaleString('en-US')}</strong></div>
+        <div style="margin-top:12px">
+          <a href="#invest" class="plan-btn" onclick="invest(${p.amount})">Invest Now</a>
+        </div>
+      `;
+      allPlansEl.appendChild(div);
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', render);
+  } else {
+    render();
+  }
+
+  // expose globally
+  window.renderPlans = render;
+})();
+
+</script>
+<!-- /INJECTED SCRIPT -->
+
+<!-- Injected: Mobile hamburger/menu JS -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const sidebar = document.getElementById('sidebar');
@@ -979,10 +1041,10 @@ copyBtn.addEventListener("click", () => {
 // ===========================
 // BALANCE SYSTEM (LOCAL SAVE)
 // ===========================
-let totalDeposits = parseFloat(|| 0;
-let dailyProfit = parseFloat(|| 0;
-let recentActivity = null || [];
-let balance = parseFloat(|| 0;
+let totalDeposits = parseFloat(localStorage.getItem("totalDeposits")) || 0;
+let dailyProfit = parseFloat(localStorage.getItem("dailyProfit")) || 0;
+let recentActivity = JSON.parse(localStorage.getItem("recentActivity")) || [];
+let balance = parseFloat(localStorage.getItem("balance")) || 0;
 const updateBalanceUI = () => {
   const balEl = document.getElementById("user-balance");
   if (balEl) balEl.innerText = `৳${balance.toFixed(2)}`;
@@ -993,7 +1055,7 @@ updateDashboardUI();
 // ===========================
 // ACTIVE PLAN STORAGE
 // ===========================
-const activePlans = null || [];
+const activePlans = JSON.parse(localStorage.getItem("activePlans")) || [];
 
 // ===========================
 // DEPOSIT LOGIC (15 MIN LATER ADD)
@@ -1001,17 +1063,19 @@ const activePlans = null || [];
 function depositRequest(amount) {
   if (!amount || amount <= 0) return;
   const timeNow = Date.now();
-  const /*removed_localcache*/ = null || [];
-  /*removed_localcache*/.push({ amount, requestTime: timeNow });
-
+  const pendingDeposits = JSON.parse(localStorage.getItem("pendingDeposits")) || [];
+  pendingDeposits.push({ amount, requestTime: timeNow });
+  localStorage.setItem("pendingDeposits", JSON.stringify(pendingDeposits));
   alert(`Deposit Request Received!আপনার টাকা ১৫ মিনিটের মধ্যে আপনার ব্যালেন্সে যোগ হবে। 
   সময় পার হলে বা ফেইল দেখালে টেলিগ্রাম সাপোর্টে যোগাযোগ করুন।`);
 
   // Update balance and total deposit
-let balance = parseFloat(
-let totalDeposits = parseFloat(
+let balance = parseFloat(localStorage.getItem("balance") || "0");
+let totalDeposits = parseFloat(localStorage.getItem("totalDeposits") || "0");
 balance += amount;
 totalDeposits += amount;
+localStorage.setItem("balance", balance);
+localStorage.setItem("totalDeposits", totalDeposits);
 
 // Refresh dashboard UI if available
 if (typeof updateDashboardUI === "function") updateDashboardUI();
@@ -1020,15 +1084,15 @@ if (typeof updateDashboardUI === "function") updateDashboardUI();
 
 // প্রতি মিনিটে চেক করবে ১৫ মিনিট পার হয়েছে কিনা
 setInterval(() => {
-  const /*removed_localcache*/ = null || [];
-  let balance = parseFloat(
-  let totalDeposits = parseFloat(
-  const recentActivity = null || [];
+  const pendingDeposits = JSON.parse(localStorage.getItem("pendingDeposits")) || [];
+  let balance = parseFloat(localStorage.getItem("balance") || "0");
+  let totalDeposits = parseFloat(localStorage.getItem("totalDeposits") || "0");
+  const recentActivity = JSON.parse(localStorage.getItem("recentActivity")) || [];
 
   const now = Date.now();
   const remaining = [];
 
-  /*removed_localcache*/.forEach(dep => {
+  pendingDeposits.forEach(dep => {
     // যদি 1 মিনিট পেরিয়ে যায়, তাহলে complete করে balance এ যোগ করো
     if (now - dep.requestTime >= 1 * 60 * 1000) {
       balance += dep.amount;
@@ -1046,6 +1110,10 @@ setInterval(() => {
   });
 
   // সবকিছু লোকাল স্টোরেজে আপডেট করো
+  localStorage.setItem("pendingDeposits", JSON.stringify(remaining));
+  localStorage.setItem("balance", balance);
+  localStorage.setItem("totalDeposits", totalDeposits);
+  localStorage.setItem("recentActivity", JSON.stringify(recentActivity));
 
   // UI রিফ্রেশ
   if (typeof updateBalanceUI === "function") updateBalanceUI();
@@ -1060,17 +1128,18 @@ setInterval(() => {
 function withdrawSuccess(amount) {
   if (amount > 0 && amount <= balance) {
     balance -= amount;
-
+    localStorage.setItem("balance", balance);
     updateBalanceUI();
     updateDashboardUI();
 
 // ✅ নতুন withdraw activity সেভ করো
-const /*removed_localcache*/ = null || [];
-/*removed_localcache*/.push({
+const pendingWithdraws = JSON.parse(localStorage.getItem('pendingWithdraws')) || [];
+pendingWithdraws.push({
   amount,
   requestTime: Date.now(),
   status: 'Pending'
 });
+localStorage.setItem('pendingWithdraws', JSON.stringify(pendingWithdraws));
 
 // ✅ withdraw টেবিল রিফ্রেশ করো
 if (typeof renderWithdrawTable === "function") {
@@ -1079,6 +1148,7 @@ if (typeof renderWithdrawTable === "function") {
 
 // ✅ হিস্টরিতেও দেখাও
 addToHistory("Withdraw", amount);
+
 
   }
 }
@@ -1089,17 +1159,17 @@ addToHistory("Withdraw", amount);
 function investSuccess(amount, profitRate, durationDays) {
   if (amount <= 0 || amount > balance) return alert("ব্যালেন্স পর্যাপ্ত নয়!");
   balance -= amount;
-
+  localStorage.setItem("balance", balance);
   updateBalanceUI();
   updateDashboardUI();
-  const plans = null || [];
+  const plans = JSON.parse(localStorage.getItem("activePlans")) || [];
   plans.push({
     amount,
     profitRate,
     durationDays,
     lastProfitTime: Date.now()
   });
-
+  localStorage.setItem("activePlans", JSON.stringify(plans));
   alert(`Investment Successful! প্রতিদিন ${profitRate}% হারে প্রফিট পাবেন ${durationDays} দিন পর্যন্ত।`);
 }
 
@@ -1107,7 +1177,7 @@ function investSuccess(amount, profitRate, durationDays) {
 // DAILY PROFIT AUTO ADD SYSTEM
 // ===========================
 function checkAndAddProfits() {
-  const plans = null || [];
+  const plans = JSON.parse(localStorage.getItem("activePlans")) || [];
   const now = Date.now();
   let updated = false;
 
@@ -1124,7 +1194,8 @@ function checkAndAddProfits() {
 
   const active = plans.filter(p => p.durationDays > 0);
   if (updated) {
-
+    localStorage.setItem("activePlans", JSON.stringify(active));
+    localStorage.setItem("balance", balance);
     updateBalanceUI();
     updateDashboardUI();
   }
@@ -1140,11 +1211,11 @@ setInterval(checkAndAddProfits, 60000);
 // ===========================
 function updateDashboardUI() {
   
-  let activePlans = null || [];
-let balance = parseFloat(
-let totalDeposits = parseFloat(
-let dailyProfit = parseFloat(
-let recentActivity = null || [];
+  let activePlans = JSON.parse(localStorage.getItem("activePlans")) || [];
+let balance = parseFloat(localStorage.getItem("balance") || "0");
+let totalDeposits = parseFloat(localStorage.getItem("totalDeposits") || "0");
+let dailyProfit = parseFloat(localStorage.getItem("dailyProfit") || "0");
+let recentActivity = JSON.parse(localStorage.getItem("recentActivity")) || [];
 
   const b = document.getElementById("dash-balance");
   const p = document.getElementById("dash-profit");
@@ -1177,8 +1248,8 @@ function renderDepositTable(){
   if(!depositTbody) return;
 
   depositTbody.innerHTML = '';
-  const pending = null || [];
-  const recent = null || [];
+  const pending = JSON.parse(localStorage.getItem('pendingDeposits')) || [];
+  const recent = JSON.parse(localStorage.getItem('recentActivity')) || [];
 
   // pending first
   pending.slice().reverse().forEach(p => {
@@ -1219,8 +1290,9 @@ function depositRequest(amount) {
   const method = sel ? sel.dataset.method : 'manual';
 
   const timeNow = Date.now();
-  const pending = null || [];
+  const pending = JSON.parse(localStorage.getItem('pendingDeposits')) || [];
   pending.push({ amount, requestTime: timeNow, phone, trxid, method });
+  localStorage.setItem('pendingDeposits', JSON.stringify(pending));
 
   const msg = document.getElementById('deposit-msg');
   if(msg){ msg.style.color='green'; msg.textContent='Deposit request received.'; }
@@ -1338,10 +1410,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 </script>
-<script type="module" src="./deposit.js"></script>
-<script type="module" src="./withdraw.js"></script>
-<script type="module" src="./dashboard.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script type="module" src="/path/to/invest.js"></script>
+<script type="module" src="/path/to/deposithandler.js"></script>
+
 </body>
 </html>
